@@ -2,7 +2,7 @@
 
 通过 QQ 官方机器人 API 让 [Claude Code](https://claude.ai/code)（或任何能响应 prompt 的智能体）收发消息的通道：在手机 QQ 上给机器人发消息，智能体在本机处理并回复，支持图片识别、文件处理和富媒体回复。
 
-> 本项目参考 [OpenClaw QQBot](https://github.com/tencent-connect/openclaw-qqbot)。
+> 本项目源自 [tencent-connect/openclaw-qqbot](https://github.com/tencent-connect/openclaw-qqbot)（MIT，作者 sliverp / Tencent Connect）与 [ZhongtaoWang/qqbot-claude-channel](https://github.com/ZhongtaoWang/qqbot-claude-channel)（MIT），在此致谢上游。
 
 ## 架构
 
@@ -107,4 +107,4 @@ claude mcp add qqbot \
 
 ## 许可
 
-[MIT](LICENSE)
+[MIT](LICENSE)。本项目继承上游 [openclaw-qqbot](https://github.com/tencent-connect/openclaw-qqbot)（sliverp / Tencent Connect）与 [qqbot-claude-channel](https://github.com/ZhongtaoWang/qqbot-claude-channel)（ZhongtaoWang）的 MIT 许可，版权声明见 `LICENSE`。
