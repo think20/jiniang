@@ -1,4 +1,4 @@
-# qqbot-claude-channel
+# 机娘（jiniang）
 
 通过 QQ 官方机器人 API 让 [Claude Code](https://claude.ai/code)（或任何能响应 prompt 的智能体）收发消息的通道：在手机 QQ 上给机器人发消息，智能体在本机处理并回复，支持图片识别、文件处理和富媒体回复。
 
@@ -35,8 +35,8 @@ JSON 序列化/反序列化由脚本负责，智能体只处理干净的对话�
 3. 克隆并安装依赖：
 
 ```bash
-git clone https://github.com/think20/qqbot-claude-channel.git
-cd qqbot-claude-channel
+git clone https://github.com/think20/jiniang.git
+cd jiniang
 bun install
 ```
 
