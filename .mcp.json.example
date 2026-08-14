@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "qqbot": {
+      "type": "stdio",
+      "command": "bun",
+      "args": [
+        "./OriginalQQBot/qqbot.ts"
+      ],
+      "env": {
+        "QQ_APPID": "你的AppID",
+        "QQ_APP_SECRET": "你的AppSecret"
+      }
+    }
+  }
+}

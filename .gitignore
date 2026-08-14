@@ -1,0 +1,23 @@
+# 依赖
+node_modules/
+
+# 敏感配置（含真实 AppID/Secret）
+.mcp.json
+
+# 临时文件（图片、音频缓存）
+.tmp/
+
+# Claude Code 本地状态
+.claude/
+
+# Claude Code 项目指令
+CLAUDE.md
+
+# 环境变量（含真实凭证）
+.env
+.env.*
+!.env.example
+
+# 系统文件
+.DS_Store
+Thumbs.db
