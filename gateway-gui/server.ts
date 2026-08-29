@@ -34,11 +34,26 @@ const NO_OPEN = process.env.GUI_NO_OPEN === "1";
 
 const APP_ID = process.env.QQ_APPID ?? "";
 const APP_SECRET = process.env.QQ_APP_SECRET ?? "";
-const SESSION_ID = process.env.CLAUDE_SESSION_ID ?? "";
 const CONFIGURED =
   APP_ID !== "" && APP_SECRET !== "" &&
   APP_ID !== "你的AppID" && APP_SECRET !== "你的AppSecret";
-const SESSION_CONFIGURED = SESSION_ID !== "" && SESSION_ID !== "你的SessionID";
+
+// ── 实际生效的会话 ID：优先环境变量 CLAUDE_SESSION_ID，
+//    其次 check-pending.ts 中内置的回退默认值（部署版往往直接内置真实会话 ID）──
+function readFallbackSessionId(): string {
+  try {
+    const src = readFileSync(join(APP_ROOT, "check-pending.ts"), "utf-8");
+    const m = src.match(/CLAUDE_SESSION_ID\s*\?\?\s*["']([^"']+)["']/);
+    return m ? m[1] : "";
+  } catch { return ""; }
+}
+const SESSION_ID = process.env.CLAUDE_SESSION_ID ?? "";
+const EFFECTIVE_SESSION_ID = SESSION_ID || readFallbackSessionId();
+const SESSION_CONFIGURED =
+  EFFECTIVE_SESSION_ID !== "" && EFFECTIVE_SESSION_ID !== "你的SessionID";
+const SESSION_MASK = SESSION_CONFIGURED
+  ? EFFECTIVE_SESSION_ID.slice(0, 4) + "****" + EFFECTIVE_SESSION_ID.slice(-4)
+  : "";
 
 // ── 受管进程 ──
 interface ManagedProc {
@@ -344,7 +359,7 @@ log("╚════════════════════════
 log("控制台地址: http://" + HOST + ":" + PORT);
 log("项目目录  : " + APP_ROOT);
 log("凭证状态  : " + (CONFIGURED ? "已配置" : "未配置 —— 请先在 start-gateway.bat 填写 QQ_APPID / QQ_APP_SECRET"));
-log("会话状态  : " + (SESSION_CONFIGURED ? "已配置" : "CLAUDE_SESSION_ID 未配置（外部时钟将使用占位会话）"));
+log("会话状态  : " + (SESSION_CONFIGURED ? "已配置 (" + SESSION_MASK + ")" : "CLAUDE_SESSION_ID 未配置（外部时钟将使用占位会话）"));
 log("关闭本窗口（Ctrl+C）将同时结束网关与外部时钟进程。");
 
 if (AUTOSTART) {
