@@ -32,11 +32,29 @@ const INDEX_FILE = join(ROOT, "index.html");
 const AUTOSTART = process.env.GUI_AUTOSTART !== "0";
 const NO_OPEN = process.env.GUI_NO_OPEN === "1";
 
+// ── 凭证回退：直接运行本服务器（不经 start-gateway.bat）时，
+//    从项目 start-gateway.bat 的 set 行读取真实凭证，避免子进程因缺 env 退出 ──
+function readBatCredentials(): { appId: string; appSecret: string } {
+  try {
+    const src = readFileSync(join(APP_ROOT, "start-gateway.bat"), "utf-8");
+    const mId = src.match(/set\s+QQ_APPID=(\S+)/);
+    const mSec = src.match(/set\s+QQ_APP_SECRET=(\S+)/);
+    return { appId: mId ? mId[1] : "", appSecret: mSec ? mSec[1] : "" };
+  } catch {
+    return { appId: "", appSecret: "" };
+  }
+}
 const APP_ID = process.env.QQ_APPID ?? "";
 const APP_SECRET = process.env.QQ_APP_SECRET ?? "";
+const BAT_CREDS = readBatCredentials();
+const FINAL_APP_ID = APP_ID || BAT_CREDS.appId;
+const FINAL_APP_SECRET = APP_SECRET || BAT_CREDS.appSecret;
+// 回退值写回环境变量，保证子进程（Bun.spawn env: process.env）继承
+if (!process.env.QQ_APPID) process.env.QQ_APPID = FINAL_APP_ID;
+if (!process.env.QQ_APP_SECRET) process.env.QQ_APP_SECRET = FINAL_APP_SECRET;
 const CONFIGURED =
-  APP_ID !== "" && APP_SECRET !== "" &&
-  APP_ID !== "你的AppID" && APP_SECRET !== "你的AppSecret";
+  FINAL_APP_ID !== "" && FINAL_APP_SECRET !== "" &&
+  FINAL_APP_ID !== "你的AppID" && FINAL_APP_SECRET !== "你的AppSecret";
 
 // ── 实际生效的会话 ID：优先环境变量 CLAUDE_SESSION_ID，
 //    其次 check-pending.ts 中内置的回退默认值（部署版往往直接内置真实会话 ID）──
