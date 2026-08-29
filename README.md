@@ -23,8 +23,10 @@ JSON 序列化/反序列化由脚本负责，智能体只处理干净的对话�
 | 文件 | 作用 |
 |---|---|
 | `qqbot-gateway.ts` | 全双工网关：WebSocket 收 + HTTP 发，独立进程 |
-| `check-pending.ts` | 唤醒脚本：轮询 → 读队列/别名 → 唤醒智能体 → 解析回复 → 写回复队列 |
+| `check-pending.ts` | 唤醒脚本（外部时钟）：轮询 → 读队列/别名 → 唤醒智能体 → 解析回复 → 写回复队列 |
 | `OriginalQQBot/qqbot.ts` | MCP 服务器：智能体在线时替代 gateway |
+| `gateway-gui/server.ts` | 图形界面后端：子进程方式运行网关 + 外部时钟，WebSocket 推送日志/统计 |
+| `gateway-gui/index.html` | 图形界面前端：单一窗口同时观察网关与外部时钟 |
 
 ## 部署
 
@@ -44,11 +46,23 @@ bun install
 5. 启动网关与检测器：
 
 ```bash
-start-gateway.bat        # Windows 一键启动
+start-gateway.bat        # Windows 一键启动（图形界面，推荐）
+start-gateway-console.bat # 原版双窗口模式（备用）
 # 或手动分别启动：
 bun qqbot-gateway.ts
 bun check-pending.ts
 ```
+
+### 图形界面（GUI）
+
+`start-gateway.bat` 现在只会打开**一个**图形界面窗口（浏览器控制台），网关与外部时钟（消息检测器）作为子进程运行在同一个界面内，方便操作者同时观察：
+
+- **左侧面板 = 网关**（`qqbot-gateway.ts`）：WebSocket 连接状态、待处理消息数、待发送回复数、处理锁、实时日志
+- **右侧面板 = 外部时钟 / 检测器**（`check-pending.ts`）：空闲/检测/唤醒/成功/失败状态徽章、定时任务列表、用户别名数、轮询与唤醒日志
+- 顶栏显示实时时钟；每个进程可单独 **启动 / 停止 / 重启 / 清空日志**，也可一键「启动全部 / 停止全部」
+- 关闭 GUI 后台窗口（或 Ctrl+C）即同时结束网关与外部时钟；关闭浏览器标签不会停止进程
+
+界面后端为 `gateway-gui/server.ts`，不修改任何业务逻辑。环境变量：`GUI_PORT`（默认 8989）、`GUI_AUTOSTART=0`（不自动启动子进程）、`GUI_NO_OPEN=1`（不自动打开浏览器）。
 
 ### 智能体部署（供智能体自主执行）
 

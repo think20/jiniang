@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>机娘 QQ Bot 网关控制台</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg:#0d1117; --panel:#151b24; --panel2:#1b2330; --border:#27303f;
+    --text:#d8e1ec; --dim:#8b96a5; --accent:#5ec9ff; --ok:#3ddc84;
+    --warn:#f5b63f; --err:#ff6b6b; --purple:#c792ea;
+    --mono:"Cascadia Code",Consolas,"Courier New",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);
+    font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;font-size:14px}
+  code{font-family:var(--mono);background:#0a0e14;padding:1px 5px;border-radius:4px;font-size:12px;color:var(--accent)}
+  .app{max-width:1500px;margin:0 auto;padding:14px 18px 30px;display:flex;flex-direction:column;gap:12px;min-height:100vh}
+
+  /* ── 顶栏 ── */
+  .topbar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:10px 16px;
+    background:linear-gradient(135deg,#151b24,#1b2330);border:1px solid var(--border);border-radius:12px}
+  .brand{display:flex;align-items:center;gap:12px;flex:1;min-width:260px}
+  .logo{font-size:26px;filter:drop-shadow(0 0 6px rgba(94,201,255,.5))}
+  .brand h1{margin:0;font-size:18px;font-weight:600;letter-spacing:.5px}
+  .brand .sub{font-size:12px;color:var(--dim);margin-top:2px}
+  .clock{text-align:right;padding:0 14px;border-left:1px solid var(--border)}
+  .clock #clockTime{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--accent);line-height:1.1}
+  .clock #clockDate{font-size:12px;color:var(--dim)}
+  .global-actions{display:flex;gap:8px}
+  button{cursor:pointer;border:1px solid var(--border);background:var(--panel2);color:var(--text);
+    border-radius:7px;padding:6px 14px;font-size:13px;transition:all .15s}
+  button:hover{border-color:var(--accent);color:var(--accent)}
+  button.danger:hover{border-color:var(--err);color:var(--err)}
+  button.ghost{opacity:.7}
+  button.primary{background:linear-gradient(135deg,#0e7490,#155e75);border-color:#0e7490;color:#fff}
+  button.primary:hover{filter:brightness(1.2);color:#fff}
+
+  /* ── 横幅 ── */
+  .banner{padding:9px 14px;border-radius:9px;background:rgba(245,182,63,.12);border:1px solid rgba(245,182,63,.45);
+    color:var(--warn);font-size:13px}
+  .banner.hidden{display:none}
+
+  /* ── 双面板 ── */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1;align-items:stretch}
+  @media(max-width:1000px){.grid{grid-template-columns:1fr}}
+  .card{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--border);
+    border-radius:12px;overflow:hidden;min-height:520px}
+  .card-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--panel2);
+    border-bottom:1px solid var(--border);flex-wrap:wrap}
+  .card-title{font-weight:600;display:flex;align-items:center;gap:8px;flex:1;min-width:200px}
+  .card-title .desc{font-weight:400;font-size:12px;color:var(--dim)}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--dim);flex:none}
+  .dot.on{background:var(--ok);box-shadow:0 0 8px rgba(61,220,132,.8)}
+  .dot.off{background:var(--dim)}
+  .status{font-size:12px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);white-space:nowrap}
+  .status.ok{color:var(--ok);border-color:rgba(61,220,132,.5);background:rgba(61,220,132,.08)}
+  .status.warn{color:var(--warn);border-color:rgba(245,182,63,.5);background:rgba(245,182,63,.08)}
+  .status.err{color:var(--err);border-color:rgba(255,107,107,.5);background:rgba(255,107,107,.08)}
+  .status.accent{color:var(--accent);border-color:rgba(94,201,255,.5);background:rgba(94,201,255,.08)}
+  .status.dim{color:var(--dim)}
+  .status.purple{color:var(--purple);border-color:rgba(199,146,234,.5);background:rgba(199,146,234,.08)}
+  .card-actions{display:flex;gap:6px;flex-wrap:wrap}
+  .card-actions button{padding:4px 10px;font-size:12px}
+
+  /* ── 统计条 ── */
+  .stats{display:flex;gap:8px;padding:8px 14px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:#11161f}
+  .chip{font-size:12px;color:var(--dim);background:var(--panel2);border:1px solid var(--border);
+    padding:4px 10px;border-radius:20px;white-space:nowrap}
+  .chip b{font-family:var(--mono);margin-right:4px}
+  .chip b.ok{color:var(--ok)} .chip b.warn{color:var(--warn)} .chip b.accent{color:var(--accent)} .chip b.err{color:var(--err)}
+  .sch-wrap{margin-top:2px;width:100%;display:flex;flex-direction:column;gap:2px}
+  .sch{font-family:var(--mono);font-size:12px;color:var(--text);display:flex;gap:8px}
+  .sch-time{color:var(--purple);flex:none}
+  .sch-cnt{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sch.empty{color:var(--dim);font-style:italic}
+  .pending-preview{width:100%;font-size:12px;color:var(--dim);font-family:var(--mono);
+    background:#0a0e14;border:1px solid var(--border);border-radius:6px;padding:4px 8px}
+
+  /* ── 日志区 ── */
+  .log{flex:1;margin:0;padding:10px 12px;overflow:auto;font-family:var(--mono);font-size:12px;line-height:1.55;
+    background:#0a0e14;white-space:pre-wrap;word-break:break-all;min-height:360px;max-height:62vh}
+  .log .ln{white-space:pre-wrap;word-break:break-all}
+  .log .ln.c-ok{color:#6ee7a0} .log .ln.c-warn{color:#f5c269} .log .ln.c-err{color:#ff8a8a}
+  .log .ln.c-accent{color:#8fd8ff} .log .ln.c-dim{color:#5c6775} .log .ln.c-purple{color:#d8b3f5}
+  .card-foot{display:flex;align-items:center;gap:12px;padding:7px 14px;background:var(--panel2);
+    border-top:1px solid var(--border);font-size:12px;color:var(--dim)}
+  .card-foot label{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+  .tail{font-family:var(--mono);margin-left:auto}
+
+  /* ── 页脚 ── */
+  .footer{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--dim);
+    padding:8px 14px;border:1px solid var(--border);border-radius:10px;background:var(--panel)}
+  .footer .ok{color:var(--ok)} .footer .err{color:var(--err)}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">🤖</span>
+      <div>
+        <h1>机娘 · QQ Bot 网关控制台</h1>
+        <div class="sub">单一窗口监控：网关 qqbot-gateway.ts ＋ 外部时钟 check-pending.ts</div>
+      </div>
+    </div>
+    <div class="clock">
+      <div id="clockTime">--:--:--</div>
+      <div id="clockDate">----</div>
+    </div>
+    <div class="global-actions">
+      <button id="startAll" class="primary">▶ 启动全部</button>
+      <button id="stopAll" class="danger">■ 停止全部</button>
+    </div>
+  </header>
+
+  <div id="warnBanner" class="banner hidden"></div>
+
+  <main class="grid">
+
+    <!-- 网关 -->
+    <section class="card" id="card-gateway">
+      <header class="card-head">
+        <div class="card-title">
+          <span class="dot" id="dot-gateway"></span>
+          网关 <code>qqbot-gateway.ts</code>
+          <span class="desc" id="desc-gateway"></span>
+        </div>
+        <div class="status dim" id="status-gateway">—</div>
+        <div class="card-actions">
+          <button data-name="gateway" data-action="start">启动</button>
+          <button data-name="gateway" data-action="stop" class="danger">停止</button>
+          <button data-name="gateway" data-action="restart">重启</button>
+          <button data-name="gateway" data-action="clear" class="ghost">清空</button>
+        </div>
+      </header>
+      <div class="stats" id="stats-gateway"></div>
+      <pre class="log" id="log-gateway"></pre>
+      <footer class="card-foot">
+        <label><input type="checkbox" class="autoscroll" data-name="gateway" checked> 自动滚动</label>
+        <span class="tail" id="tail-gateway"></span>
+      </footer>
+    </section>
+
+    <!-- 外部时钟 / 检测器 -->
+    <section class="card" id="card-detector">
+      <header class="card-head">
+        <div class="card-title">
+          <span class="dot" id="dot-detector"></span>
+          外部时钟 / 检测器 <code>check-pending.ts</code>
+          <span class="desc" id="desc-detector"></span>
+        </div>
+        <div class="status dim" id="status-detector">—</div>
+        <div class="card-actions">
+          <button data-name="detector" data-action="start">启动</button>
+          <button data-name="detector" data-action="stop" class="danger">停止</button>
+          <button data-name="detector" data-action="restart">重启</button>
+          <button data-name="detector" data-action="clear" class="ghost">清空</button>
+        </div>
+      </header>
+      <div class="stats" id="stats-detector"></div>
+      <pre class="log" id="log-detector"></pre>
+      <footer class="card-foot">
+        <label><input type="checkbox" class="autoscroll" data-name="detector" checked> 自动滚动</label>
+        <span class="tail" id="tail-detector"></span>
+      </footer>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <span id="connState">连接中…</span>
+    <span id="serverInfo"></span>
+    <span>提示：关闭浏览器标签不会停止进程；关闭后台控制台窗口（或 Ctrl+C）才停止网关与外部时钟。</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (sel) { return document.querySelector(sel); };
+  var WS_URL = (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws";
+  var AUTO = { gateway: true, detector: true };
+  var logEls = { gateway: $("#log-gateway"), detector: $("#log-detector") };
+  var state = {
+    procs: { gateway: { running: false, lines: [], startedAt: null, exitCode: null, label: "网关" },
+             detector: { running: false, lines: [], startedAt: null, exitCode: null, label: "外部时钟" } },
+    stats: null
+  };
+
+  // ── 实时时钟（顶栏）──
+  function tickClock() {
+    var d = new Date(), p = function (n) { return String(n).padStart(2, "0"); };
+    $("#clockTime").textContent = p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+    $("#clockDate").textContent = d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) +
+      " 周" + "日一二三四五六".charAt(d.getDay());
+  }
+  setInterval(tickClock, 250); tickClock();
+
+  // ── 日志着色 ──
+  function classify(line) {
+    if (/Fatal close|fatal|FATAL/.test(line)) return "c-err";
+    if (line.indexOf("❌") >= 0) return "c-err";
+    if (line.indexOf("✅") >= 0) return "c-ok";
+    if (line.indexOf("[STATUS:SUCCESS]") >= 0) return "c-ok";
+    if (/[STATUS:(DETECTED|WAKING)]/.test(line)) return "c-accent";
+    if (/[STATUS:FAILED]/.test(line)) return "c-err";
+    if (/[STATUS:(LOCKED|COOLDOWN)]/.test(line)) return "c-dim";
+    if (line.indexOf("⚠") >= 0 || /failed|Failed|FAILED|失败|错误|skipped|Skipped/.test(line)) return "c-warn";
+    if (line.indexOf("[STATUS:IDLE]") >= 0 || line.indexOf("⏰") >= 0) return "c-purple";
+    return "";
+  }
+  function appendLine(name, line) {
+    var el = logEls[name]; if (!el) return;
+    var d = document.createElement("div");
+    d.className = "ln " + classify(line);
+    d.textContent = line;
+    el.appendChild(d);
+    while (el.childElementCount > 900) el.removeChild(el.firstChild);
+    if (AUTO[name]) el.scrollTop = el.scrollHeight;
+  }
+  function bulkLines(name, lines) {
+    var el = logEls[name]; if (!el) return;
+    var frag = document.createDocumentFragment();
+    var arr = lines.slice(-600);
+    for (var i = 0; i < arr.length; i++) {
+      var d = document.createElement("div");
+      d.className = "ln " + classify(arr[i]);
+      d.textContent = arr[i];
+      frag.appendChild(d);
+    }
+    el.innerHTML = "";
+    el.appendChild(frag);
+    el.scrollTop = el.scrollHeight;
+  }
+  function clearLog(name) { var el = logEls[name]; if (el) el.innerHTML = ""; }
+
+  // ── 状态推导 ──
+  function gatewayStatus(lines, running) {
+    if (!running) return { text: "已停止", cls: "dim" };
+    var recent = lines.slice(-40).join("\n");
+    if (/✅ (WS connected|READY|RESUMED)/.test(recent)) return { text: "已连接", cls: "ok" };
+    if (/Reconnecting|Connecting WS/.test(recent)) return { text: "重连中…", cls: "accent" };
+    if (/Access token refreshed/.test(recent)) return { text: "运行中", cls: "ok" };
+    if (/error|Error|⚠|失败/.test(recent)) return { text: "运行中（有告警）", cls: "warn" };
+    return { text: "运行中", cls: "ok" };
+  }
+  var DET_MAP = { IDLE: ["空闲", "dim"], DETECTED: ["检测到消息", "accent"], WAKING: ["唤醒智能体…", "accent"],
+                  SUCCESS: ["处理成功", "ok"], FAILED: ["处理失败", "err"], LOCKED: ["处理锁占用", "dim"], COOLDOWN: ["冷却中", "dim"] };
+  function detectorStatus(lines, running) {
+    if (!running) return { text: "已停止", cls: "dim" };
+    var recent = lines.slice(-60).join("\n");
+    var m = recent.match(/[STATUS:(w+)]/g);
+    if (m && m.length) {
+      var key = m[m.length - 1].replace(/[STATUS:|]/g, "");
+      if (DET_MAP[key]) return { text: DET_MAP[key][0], cls: DET_MAP[key][1] };
+    }
+    if (/error|Error|⚠|失败/.test(recent)) return { text: "运行中（有告警）", cls: "warn" };
+    return { text: "运行中", cls: "ok" };
+  }
+
+  function renderProcStatus() {
+    var names = ["gateway", "detector"];
+    for (var i = 0; i < names.length; i++) {
+      var name = names[i], p = state.procs[name];
+      var st = name === "gateway" ? gatewayStatus(p.lines, p.running) : detectorStatus(p.lines, p.running);
+      var badge = $("#status-" + name);
+      badge.textContent = st.text;
+      badge.className = "status " + st.cls;
+      $("#dot-" + name).className = "dot " + (p.running ? "on" : "off");
+      var up = $("#tail-" + name);
+      if (p.running && p.startedAt) {
+        var s = Math.floor((Date.now() - p.startedAt) / 1000);
+        var hh = String(Math.floor(s / 3600)).padStart(2, "0");
+        var mm = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
+        var ss = String(s % 60).padStart(2, "0");
+        up.textContent = "运行 " + hh + ":" + mm + ":" + ss + " · " + p.lines.length + " 行";
+      } else {
+        up.textContent = p.running ? (p.lines.length + " 行") : ("已停止" + (p.exitCode !== null ? " (exit " + p.exitCode + ")" : ""));
+      }
+    }
+  }
+  setInterval(renderProcStatus, 1000);
+
+  // ── 统计渲染 ──
+  function escapeHtml(s) { var d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+  function chip(label, value, cls) {
+    return '<span class="chip"><b class="' + (cls || "ok") + '">' + value + '</b> ' + escapeHtml(label) + '</span>';
+  }
+  function scheduleList(list) {
+    if (!list || list.length === 0) return '<div class="sch empty">暂无定时任务</div>';
+    var out = "";
+    for (var i = 0; i < list.length; i++) {
+      out += '<div class="sch"><span class="sch-time">' + escapeHtml(list[i].time) +
+             '</span><span class="sch-cnt">' + escapeHtml(list[i].content) + '</span></div>';
+    }
+    return '<div class="sch-wrap">' + out + '</div>';
+  }
+  function renderStats(stats) {
+    if (!stats) return;
+    state.stats = stats;
+    var pendingCls = stats.pendingCount > 0 ? "warn" : "ok";
+    $("#stats-gateway").innerHTML =
+      chip("待处理消息", stats.pendingCount, pendingCls) +
+      chip("待发送回复", stats.repliesCount, stats.repliesCount > 0 ? "accent" : "ok") +
+      chip("处理锁", stats.locked ? "占用" : "空闲", stats.locked ? "warn" : "ok");
+    if (stats.pendingPreview) {
+      $("#stats-gateway").insertAdjacentHTML("beforeend",
+        '<div class="pending-preview">最近：' + escapeHtml(stats.pendingPreview) + "</div>");
+    }
+    $("#stats-detector").innerHTML =
+      chip("定时任务", stats.scheduled.length, stats.scheduled.length > 0 ? "purple" : "ok") +
+      chip("用户别名", stats.aliasCount) +
+      chip("待处理消息", stats.pendingCount, pendingCls) +
+      chip("待发送回复", stats.repliesCount, stats.repliesCount > 0 ? "accent" : "ok") +
+      scheduleList(stats.scheduled);
+    var banner = $("#warnBanner");
+    if (!stats.configured) {
+      banner.classList.remove("hidden");
+      banner.textContent = "⚠ QQ_APPID / QQ_APP_SECRET 未配置或仍为占位符 —— 请先在 start-gateway.bat 中填写真实凭证，网关才能连接 QQ。";
+    } else if (!stats.sessionConfigured) {
+      banner.classList.remove("hidden");
+      banner.textContent = "⚠ CLAUDE_SESSION_ID 未配置 —— 外部时钟仍会轮询，但唤醒智能体时将使用占位会话。";
+    } else {
+      banner.classList.add("hidden");
+    }
+  }
+
+  // ── 消息处理 ──
+  function renderInit(msg) {
+    $("#serverInfo").textContent = "端口 " + msg.port + " · " + (msg.stats && msg.stats.tempDir ? msg.stats.tempDir : "");
+    for (var i = 0; i < msg.procs.length; i++) {
+      var p = msg.procs[i];
+      state.procs[p.name] = { running: p.running, lines: p.lines || [], startedAt: p.startedAt, exitCode: p.exitCode, label: p.label };
+      $("#desc-" + p.name).textContent = p.desc;
+      bulkLines(p.name, p.lines || []);
+    }
+    renderProcStatus();
+    renderStats(msg.stats);
+  }
+  function onProc(msg) {
+    var p = state.procs[msg.name]; if (!p) return;
+    p.running = msg.running; p.startedAt = msg.startedAt; p.exitCode = msg.exitCode;
+    if (msg.running) clearLog(msg.name);
+    renderProcStatus();
+  }
+
+  // ── WebSocket ──
+  var ws = null, retry = 0;
+  function connect() {
+    ws = new WebSocket(WS_URL);
+    ws.onopen = function () {
+      retry = 0;
+      var el = $("#connState"); el.textContent = "● 已连接"; el.className = "ok";
+    };
+    ws.onclose = function () {
+      var el = $("#connState"); el.textContent = "○ 连接断开，自动重连…"; el.className = "err";
+      retry++;
+      setTimeout(connect, Math.min(1000 * retry, 5000));
+    };
+    ws.onerror = function () { };
+    ws.onmessage = function (ev) {
+      var m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+      if (m.type === "init") renderInit(m);
+      else if (m.type === "line") appendLine(m.name, m.line);
+      else if (m.type === "proc") onProc(m);
+      else if (m.type === "stats") renderStats(m.stats);
+      else if (m.type === "clear") clearLog(m.name);
+    };
+  }
+  connect();
+
+  // ── 控制 ──
+  function sendControl(name, action) {
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "control", name: name, action: action }));
+  }
+  var btns = document.querySelectorAll("[data-action]");
+  for (var i = 0; i < btns.length; i++) {
+    (function (btn) {
+      btn.addEventListener("click", function () {
+        sendControl(btn.getAttribute("data-name"), btn.getAttribute("data-action"));
+      });
+    })(btns[i]);
+  }
+  $("#startAll").addEventListener("click", function () { sendControl("gateway", "start"); sendControl("detector", "start"); });
+  $("#stopAll").addEventListener("click", function () { sendControl("gateway", "stop"); sendControl("detector", "stop"); });
+
+  var cbs = document.querySelectorAll(".autoscroll");
+  for (var j = 0; j < cbs.length; j++) {
+    (function (cb) {
+      cb.addEventListener("change", function () {
+        AUTO[cb.getAttribute("data-name")] = cb.checked;
+        if (cb.checked) { var el = logEls[cb.getAttribute("data-name")]; el.scrollTop = el.scrollHeight; }
+      });
+    })(cbs[j]);
+  }
+})();
+</script>
+</body>
+</html>
